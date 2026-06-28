@@ -15,31 +15,31 @@
 
 ## Project Summary
 <!-- nexlayer:section agent-managed=project_summary -->
-Invoice Ninja is a comprehensive self-hosted invoicing application providing billing, payment tracking, and client management through a Laravel backend and a React frontend.
+Invoice Ninja 5 is a comprehensive self-hosted invoicing application providing billing, client management, and payment tracking with a Laravel backend and a Vue.js frontend.
 <!-- nexlayer:end -->
 
 ## Technology Stack
 <!-- nexlayer:section agent-managed=tech_stack -->
 | Name | Kind | Version | Detected From |
 |------|------|---------|---------------|
-| PHP | language | 8.x | Dockerfile |
+| PHP | language | 8.x | Dockerfile, composer.json |
 | Laravel | framework | 9.x/10.x | artisan, composer.json |
+| Vue.js | framework | 2.7 | package.json |
+| Vite | build | 4.5.14 | package.json, vite.config.ts |
 | MySQL | database | latest | .env.example |
 | Redis | database | latest | .env.example |
-| Vite | build | 4.5.14 | package.json |
-| React | framework | latest | package.json |
 <!-- nexlayer:end -->
 
 ## Repository Structure
 <!-- nexlayer:section agent-managed=structure_map -->
 - app/ — Laravel core application logic
-- bootstrap/ — Laravel framework bootstrapper
+- bootstrap/ — Laravel framework bootstrap files
 - config/ — Application configuration files
 - database/ — Migrations and seeders
-- public/ — Web server root and static assets
-- resources/ — Frontend assets and blade templates
-- routes/ — HTTP route definitions
-- storage/ — File uploads and logs
+- public/ — Web server entry point and static assets
+- resources/ — Vue.js frontend source and blade templates
+- routes/ — API and Web route definitions
+- storage/ — Application logs, cache, and uploaded files
 <!-- nexlayer:end -->
 
 ## External Services Required
@@ -48,7 +48,7 @@ Services that must be configured separately (not deployed by Nexlayer):
 
 - Postmark API (POSTMARK_API_TOKEN)
 - Google Maps API (GOOGLE_MAPS_API_KEY)
-- PhantomJS/Hosted Ninja (PDF_GENERATOR)
+- PhantomJS/Hosted Ninja (PDF Generation)
 <!-- nexlayer:end -->
 
 ## Local Development Setup
@@ -106,8 +106,6 @@ APP_KEY=base64:RR++yx2rJ9kdxbdh3+AmbHLDQu+Q76i++co9Y8ybbno=
 | `app` | `LOG_CHANNEL` | `stderr` | plain |
 | `app` | `IN_USER_EMAIL` | `"admin@example.com"` | plain |
 | `app` | `IN_PASSWORD` | _(set via Nexlayer dashboard)_ | secret |
-| `invoiceninja-storage` | `mountPath` | `/var/www/html/storage` | plain |
-| `invoiceninja-storage` | `size` | `5Gi` | plain |
 | `mysql` | `MYSQL_DATABASE` | `invoiceninja` | plain |
 | `mysql` | `MYSQL_USER` | `invoiceninja` | plain |
 | `mysql` | `MYSQL_PASSWORD` | `"${MYSQL_PASSWORD}"` | inter-pod |
@@ -160,14 +158,10 @@ application:
       # initial admin account, else it exits 1.
       IN_USER_EMAIL: "admin@example.com"
       IN_PASSWORD: "nexlayer2024"
-    volumes:
-    # Persist Laravel storage. Safe to mount now: the wrapper entrypoint runs
-    # `chown -R www-data:www-data` on storage (as root, before dropping to
-    # www-data) on every boot, so an empty/root-owned PVC is made writable and
-    # the cache:clear step no longer dies. (cache:clear is also non-fatal now.)
-    - name: invoiceninja-storage
-      mountPath: /var/www/html/storage
-      size: 5Gi
+    # NO storage PVC. A ReadWriteOnce PVC mounted by the old (crashlooping) pod
+    # blocks the new pod from attaching it -> the rollout never completes and the
+    # old broken image keeps serving (502/503). Storage is ephemeral (fine for
+    # test data); the entrypoint recreates the framework dirs on each boot.
   - name: mysql
     image: mirror.gcr.io/library/mysql:8
     servicePorts:
@@ -182,7 +176,6 @@ application:
       mountPath: /var/lib/mysql
       size: 5Gi
 ```
-
 <!-- nexlayer:end -->
 
 ## Nexlayer Deployment Plan
@@ -211,7 +204,7 @@ application:
 
 ## Nexlayer Configuration
 <!-- nexlayer:section agent-managed=nexlayer_config -->
-**Last deployed:** 2026-06-28T09:04:53Z  
+**Last deployed:** 2026-06-28T09:28:31Z  
 **Live URL:** https://relaxed-weasel-invoiceninja.cloud.nexlayer.ai  
 **Runtime:**  · **Port:** auto-detected  
 **Deploy branch:** nexlayer  
@@ -253,14 +246,10 @@ application:
       # initial admin account, else it exits 1.
       IN_USER_EMAIL: "admin@example.com"
       IN_PASSWORD: "nexlayer2024"
-    volumes:
-    # Persist Laravel storage. Safe to mount now: the wrapper entrypoint runs
-    # `chown -R www-data:www-data` on storage (as root, before dropping to
-    # www-data) on every boot, so an empty/root-owned PVC is made writable and
-    # the cache:clear step no longer dies. (cache:clear is also non-fatal now.)
-    - name: invoiceninja-storage
-      mountPath: /var/www/html/storage
-      size: 5Gi
+    # NO storage PVC. A ReadWriteOnce PVC mounted by the old (crashlooping) pod
+    # blocks the new pod from attaching it -> the rollout never completes and the
+    # old broken image keeps serving (502/503). Storage is ephemeral (fine for
+    # test data); the entrypoint recreates the framework dirs on each boot.
   - name: mysql
     image: mirror.gcr.io/library/mysql:8
     servicePorts:
@@ -281,6 +270,7 @@ application:
 <!-- nexlayer:section agent-managed=build_history -->
 | Date | Status | Notes |
 |------|--------|-------|
-| 2026-06-28T08:59:01Z | analyzed | initial repo analysis |
-| 2026-06-28T09:04:53Z | success | deployed https://relaxed-weasel-invoiceninja.cloud.nexlayer.ai |
+| 2026-06-28T09:21:36Z | analyzed | initial repo analysis |
+| 2026-06-28T09:28:31Z | success | deployed https://relaxed-weasel-invoiceninja.cloud.nexlayer.ai |
 <!-- nexlayer:end -->
+
