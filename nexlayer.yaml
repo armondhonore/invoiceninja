@@ -34,14 +34,10 @@ application:
       # initial admin account, else it exits 1.
       IN_USER_EMAIL: "admin@example.com"
       IN_PASSWORD: "nexlayer2024"
-    volumes:
-    # Persist Laravel storage. Safe to mount now: the wrapper entrypoint runs
-    # `chown -R www-data:www-data` on storage (as root, before dropping to
-    # www-data) on every boot, so an empty/root-owned PVC is made writable and
-    # the cache:clear step no longer dies. (cache:clear is also non-fatal now.)
-    - name: invoiceninja-storage
-      mountPath: /var/www/html/storage
-      size: 5Gi
+    # NO storage PVC. A ReadWriteOnce PVC mounted by the old (crashlooping) pod
+    # blocks the new pod from attaching it -> the rollout never completes and the
+    # old broken image keeps serving (502/503). Storage is ephemeral (fine for
+    # test data); the entrypoint recreates the framework dirs on each boot.
   - name: mysql
     image: mirror.gcr.io/library/mysql:8
     servicePorts:

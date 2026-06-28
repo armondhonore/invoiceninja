@@ -1,10 +1,11 @@
 # Nexlayer fix (pinned — authoritative, use verbatim)
 
-Root cause of the 502: stock `invoiceninja/invoiceninja-debian` is php-fpm ONLY
-(:9000, no web server) so the :80 edge returns 502; and its `sh -eu` entrypoint
-aborts boot on a failed `cache:clear`. Fix: a self-contained wrapper image that
-bakes nginx (serving :80, proxying *.php to local php-fpm:9000) and a non-fatal
-entrypoint. No external COPY context needed. Do NOT regenerate the Dockerfile.
+Root cause of the 502/503: stock `invoiceninja/invoiceninja-debian` is php-fpm
+ONLY (:9000, no web server) so the :80 edge returns 502; its `sh -eu` entrypoint
+also aborts boot on a failed `cache:clear`; and a ReadWriteOnce storage PVC held
+by the old crashlooping pod blocked the rollout. Fix: self-contained wrapper
+image that bakes nginx (serving :80 -> local php-fpm:9000) with a non-fatal
+entrypoint, and NO storage PVC (ephemeral). Do NOT regenerate the Dockerfile.
 
 ## Fixed Dockerfile
 
@@ -96,7 +97,7 @@ application:
     # server, so mapping :80 to it yields an edge 502. The wrapper image adds the
     # HTTP listener the platform's single-port edge needs. The pipeline replaces
     # this image ref with the freshly built image.
-    image: invoiceninja/invoiceninja-debian:latest
+    image: mirror.gcr.io/invoiceninja/invoiceninja-debian:latest
     path: /
     servicePorts:
     - 80
@@ -122,14 +123,10 @@ application:
       # initial admin account, else it exits 1.
       IN_USER_EMAIL: "admin@example.com"
       IN_PASSWORD: "nexlayer2024"
-    volumes:
-    # Persist Laravel storage. Safe to mount now: the wrapper entrypoint runs
-    # `chown -R www-data:www-data` on storage (as root, before dropping to
-    # www-data) on every boot, so an empty/root-owned PVC is made writable and
-    # the cache:clear step no longer dies. (cache:clear is also non-fatal now.)
-    - name: invoiceninja-storage
-      mountPath: /var/www/html/storage
-      size: 5Gi
+    # NO storage PVC. A ReadWriteOnce PVC mounted by the old (crashlooping) pod
+    # blocks the new pod from attaching it -> the rollout never completes and the
+    # old broken image keeps serving (502/503). Storage is ephemeral (fine for
+    # test data); the entrypoint recreates the framework dirs on each boot.
   - name: mysql
     image: mirror.gcr.io/library/mysql:8
     servicePorts:
