@@ -1,6 +1,6 @@
 # Nexlayer — invoiceninja
 
-<!-- nexlayer:meta version=1 analyzed=2026-06-28T04:37:20Z repo=https://github.com/armondhonore/invoiceninja branch=v5-stable -->
+<!-- nexlayer:meta version=1 analyzed=2026-06-28T08:59:01Z repo=https://github.com/armondhonore/invoiceninja.git branch=nexlayer -->
 
 > **For AI agents (Claude Code, Cursor, Gemini CLI, Copilot):**
 > This file is the **project context** for this Nexlayer deployment — tech stack, env vars, secrets, live URL.
@@ -15,31 +15,31 @@
 
 ## Project Summary
 <!-- nexlayer:section agent-managed=project_summary -->
-Invoice Ninja is a professional invoicing platform that allows users to manage clients, create invoices, and track payments. It utilizes a Laravel backend and a Vue.js frontend to provide comprehensive billing and business management tools.
+Invoice Ninja is a comprehensive self-hosted invoicing application providing billing, payment tracking, and client management through a Laravel backend and a React frontend.
 <!-- nexlayer:end -->
 
 ## Technology Stack
 <!-- nexlayer:section agent-managed=tech_stack -->
 | Name | Kind | Version | Detected From |
 |------|------|---------|---------------|
-| PHP | language | 8.x | composer.json, artisan |
-| Laravel | framework | unknown | artisan, composer.json |
-| Vue.js | framework | 2.7.16 | package.json |
-| Vite | build | 4.5.14 | package.json, vite.config.ts |
-| MySQL | database | unknown | .env.example |
-| Redis | database | unknown | .env.example |
+| PHP | language | 8.x | Dockerfile |
+| Laravel | framework | 9.x/10.x | artisan, composer.json |
+| MySQL | database | latest | .env.example |
+| Redis | database | latest | .env.example |
+| Vite | build | 4.5.14 | package.json |
+| React | framework | latest | package.json |
 <!-- nexlayer:end -->
 
 ## Repository Structure
 <!-- nexlayer:section agent-managed=structure_map -->
 - app/ — Laravel core application logic
-- bootstrap/ — Framework bootstrapper
+- bootstrap/ — Laravel framework bootstrapper
 - config/ — Application configuration files
-- database/ — Migrations and seeds
-- public/ — Web server entry point and static assets
-- resources/ — Vue.js frontend source and Laravel blade templates
-- routes/ — API and Web route definitions
-- storage/ — File uploads and application logs
+- database/ — Migrations and seeders
+- public/ — Web server root and static assets
+- resources/ — Frontend assets and blade templates
+- routes/ — HTTP route definitions
+- storage/ — File uploads and logs
 <!-- nexlayer:end -->
 
 ## External Services Required
@@ -48,8 +48,7 @@ Services that must be configured separately (not deployed by Nexlayer):
 
 - Postmark API (POSTMARK_API_TOKEN)
 - Google Maps API (GOOGLE_MAPS_API_KEY)
-- GoCardless (GOCARDLESS_CLIENT_ID)
-- Microsoft OAuth (MICROSOFT_CLIENT_ID)
+- PhantomJS/Hosted Ninja (PDF_GENERATOR)
 <!-- nexlayer:end -->
 
 ## Local Development Setup
@@ -59,8 +58,8 @@ Services that must be configured separately (not deployed by Nexlayer):
 - PHP >= 8.1
 - Composer
 - Node.js >= 16
-- npm
 - MySQL
+- Redis
 
 ### Environment variables
 
@@ -71,15 +70,16 @@ DB_HOST=127.0.0.1
 DB_DATABASE=ninja
 DB_USERNAME=ninja
 DB_PASSWORD=ninja
+REDIS_HOST=127.0.0.1
 APP_KEY=base64:RR++yx2rJ9kdxbdh3+AmbHLDQu+Q76i++co9Y8ybbno=
 ```
 
 ### Steps
 
 1. `composer install` — Install PHP dependencies
-2. `npm install && npm run build` — Install JS dependencies and build assets
-3. `php artisan migrate` — Run database migrations
-4. `php artisan serve` — Start local PHP development server
+2. `npm install` — Install frontend dependencies
+3. `npm run dev` — Start Vite development server
+4. `php artisan migrate` — Run database migrations
 
 <!-- nexlayer:end -->
 
@@ -182,6 +182,7 @@ application:
       mountPath: /var/lib/mysql
       size: 5Gi
 ```
+
 <!-- nexlayer:end -->
 
 ## Nexlayer Deployment Plan
@@ -190,18 +191,16 @@ application:
 
 | Pod | Image | Port | Role |
 |-----|-------|------|------|
-| app | mirror.gcr.io/library/php:8.2-fpm-alpine | 9000 | web |
-| web | mirror.gcr.io/library/nginx:alpine | 80 | web |
+| app | mirror.gcr.io/invoiceninja/invoiceninja-debian:latest | 80 | web |
 | mysql | mirror.gcr.io/library/mysql:8.0 | 3306 | database |
 | redis | mirror.gcr.io/library/redis:alpine | 6379 | cache |
-| worker | mirror.gcr.io/library/php:8.2-cli-alpine | 0 | worker |
 
 ### Deployment notes
 
-- Application connects to MySQL via mysql.pod:3306
-- Application connects to Redis via redis.pod:6379
-- The Nginx 'web' pod acts as the ingress and proxies requests to the 'app' PHP-FPM pod via app.pod:9000
-- A separate 'worker' pod is required to handle Laravel queue jobs (QUEUE_CONNECTION)
+- The app pod communicates with the database via mysql.pod:3306
+- The app pod communicates with the cache via redis.pod:6379
+- Base image is sourced from mirror.gcr.io to comply with Nexlayer namespace rules
+- PDF generation is handled externally via hosted_ninja to maintain pod lightness
 
 <!-- nexlayer:end -->
 
@@ -212,7 +211,7 @@ application:
 
 ## Nexlayer Configuration
 <!-- nexlayer:section agent-managed=nexlayer_config -->
-**Last deployed:** 2026-06-28T08:30:07Z  
+**Last deployed:** 2026-06-28T09:04:53Z  
 **Live URL:** https://relaxed-weasel-invoiceninja.cloud.nexlayer.ai  
 **Runtime:**  · **Port:** auto-detected  
 **Deploy branch:** nexlayer  
@@ -282,8 +281,6 @@ application:
 <!-- nexlayer:section agent-managed=build_history -->
 | Date | Status | Notes |
 |------|--------|-------|
-| 2026-06-28T08:22:31Z | analyzed | initial repo analysis |
-| 2026-06-28T08:30:07Z | success | deployed https://relaxed-weasel-invoiceninja.cloud.nexlayer.ai |
+| 2026-06-28T08:59:01Z | analyzed | initial repo analysis |
+| 2026-06-28T09:04:53Z | success | deployed https://relaxed-weasel-invoiceninja.cloud.nexlayer.ai |
 <!-- nexlayer:end -->
-
-
