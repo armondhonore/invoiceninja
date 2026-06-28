@@ -31,6 +31,15 @@ application:
       # initial admin account, else it exits 1.
       IN_USER_EMAIL: "admin@example.com"
       IN_PASSWORD: "nexlayer2024"
+    volumes:
+    # Persist Laravel storage so the framework cache/session/view dirs that
+    # init.sh creates (framework/{cache,sessions,views}, app/public) survive
+    # restarts — stops the entrypoint's cache:clear/optimize from flaking on a
+    # half-initialized storage tree across reboots. init.sh mkdir -p's these on
+    # an empty volume, so no baked-content shadowing matters here.
+    - name: invoiceninja-storage
+      mountPath: /var/www/html/storage
+      size: 5Gi
   - name: mysql
     image: mysql:8
     servicePorts:
