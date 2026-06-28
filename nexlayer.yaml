@@ -21,6 +21,12 @@ application:
       REQUIRE_HTTPS: "true"
       IS_DOCKER: "true"
       TRUSTED_PROXIES: "*"
+      # No Redis pod in this deployment — keep cache/session/queue off Redis so
+      # the entrypoint's cache-clear step does not fail trying to reach redis.
+      CACHE_DRIVER: file
+      SESSION_DRIVER: file
+      QUEUE_CONNECTION: sync
+      LOG_CHANNEL: stderr
   - name: mysql
     image: mysql:8
     servicePorts:
