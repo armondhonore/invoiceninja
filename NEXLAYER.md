@@ -15,31 +15,31 @@
 
 ## Project Summary
 <!-- nexlayer:section agent-managed=project_summary -->
-Invoice Ninja 5 is a comprehensive self-hosted invoicing application providing billing, client management, and payment tracking with a Laravel backend and a Vue.js frontend.
+Invoice Ninja is a professional self-hosted invoicing platform that allows users to manage clients, create invoices, and track payments. It is built on a Laravel backend with a Vue/React frontend.
 <!-- nexlayer:end -->
 
 ## Technology Stack
 <!-- nexlayer:section agent-managed=tech_stack -->
 | Name | Kind | Version | Detected From |
 |------|------|---------|---------------|
-| PHP | language | 8.x | Dockerfile, composer.json |
-| Laravel | framework | 9.x/10.x | artisan, composer.json |
-| Vue.js | framework | 2.7 | package.json |
-| Vite | build | 4.5.14 | package.json, vite.config.ts |
+| PHP | language | latest | Dockerfile |
+| Laravel | framework | 5.x/10.x | artisan, composer.json |
 | MySQL | database | latest | .env.example |
-| Redis | database | latest | .env.example |
+| Nginx | infra | latest | Dockerfile |
+| Vite | build | 4.5.14 | package.json |
+| Redis | cache | latest | .env.example |
 <!-- nexlayer:end -->
 
 ## Repository Structure
 <!-- nexlayer:section agent-managed=structure_map -->
 - app/ — Laravel core application logic
-- bootstrap/ — Laravel framework bootstrap files
+- bootstrap/ — Framework bootstrap files
 - config/ — Application configuration files
 - database/ — Migrations and seeders
-- public/ — Web server entry point and static assets
-- resources/ — Vue.js frontend source and blade templates
-- routes/ — API and Web route definitions
-- storage/ — Application logs, cache, and uploaded files
+- public/ — Web server root directory
+- resources/ — Frontend assets and templates
+- routes/ — HTTP route definitions
+- storage/ — File uploads and logs
 <!-- nexlayer:end -->
 
 ## External Services Required
@@ -48,7 +48,7 @@ Services that must be configured separately (not deployed by Nexlayer):
 
 - Postmark API (POSTMARK_API_TOKEN)
 - Google Maps API (GOOGLE_MAPS_API_KEY)
-- PhantomJS/Hosted Ninja (PDF Generation)
+- PhantomJS/Hosted Ninja PDF (PHANTOMJS_KEY)
 <!-- nexlayer:end -->
 
 ## Local Development Setup
@@ -126,13 +126,12 @@ application:
   name: invoiceninja
   pods:
   - name: app
-    # Built from the repo-root Dockerfile (FROM invoiceninja/invoiceninja-debian
-    # + baked-in nginx serving :80, proxying *.php to local php-fpm:9000). The
-    # stock invoiceninja-debian image is php-fpm ONLY on :9000 with NO web
-    # server, so mapping :80 to it yields an edge 502. The wrapper image adds the
-    # HTTP listener the platform's single-port edge needs. The pipeline replaces
-    # this image ref with the freshly built image.
-    image: mirror.gcr.io/invoiceninja/invoiceninja-debian:latest
+    # IMPORTANT: this MUST be the literal pipeline placeholder so the runner
+    # patches in the freshly BUILT wrapper image (FROM invoiceninja-debian +
+    # baked-in nginx on :80 -> local php-fpm:9000). If a real image ref is put
+    # here, the runner deploys THAT stock image instead of the built wrapper —
+    # which is php-fpm-only on :9000 (no :80 listener) -> edge 502.
+    image: "registry.nexlayer.io/user_01kece1xyh817dwff7wnarhkxd/invoiceninja:19f0d936b12"
     path: /
     servicePorts:
     - 80
@@ -204,7 +203,7 @@ application:
 
 ## Nexlayer Configuration
 <!-- nexlayer:section agent-managed=nexlayer_config -->
-**Last deployed:** 2026-06-28T09:28:31Z  
+**Last deployed:** 2026-06-28T09:34:55Z  
 **Live URL:** https://relaxed-weasel-invoiceninja.cloud.nexlayer.ai  
 **Runtime:**  · **Port:** auto-detected  
 **Deploy branch:** nexlayer  
@@ -214,13 +213,12 @@ application:
   name: invoiceninja
   pods:
   - name: app
-    # Built from the repo-root Dockerfile (FROM invoiceninja/invoiceninja-debian
-    # + baked-in nginx serving :80, proxying *.php to local php-fpm:9000). The
-    # stock invoiceninja-debian image is php-fpm ONLY on :9000 with NO web
-    # server, so mapping :80 to it yields an edge 502. The wrapper image adds the
-    # HTTP listener the platform's single-port edge needs. The pipeline replaces
-    # this image ref with the freshly built image.
-    image: mirror.gcr.io/invoiceninja/invoiceninja-debian:latest
+    # IMPORTANT: this MUST be the literal pipeline placeholder so the runner
+    # patches in the freshly BUILT wrapper image (FROM invoiceninja-debian +
+    # baked-in nginx on :80 -> local php-fpm:9000). If a real image ref is put
+    # here, the runner deploys THAT stock image instead of the built wrapper —
+    # which is php-fpm-only on :9000 (no :80 listener) -> edge 502.
+    image: "registry.nexlayer.io/user_01kece1xyh817dwff7wnarhkxd/invoiceninja:19f0d936b12"
     path: /
     servicePorts:
     - 80
@@ -270,7 +268,8 @@ application:
 <!-- nexlayer:section agent-managed=build_history -->
 | Date | Status | Notes |
 |------|--------|-------|
-| 2026-06-28T09:21:36Z | analyzed | initial repo analysis |
-| 2026-06-28T09:28:31Z | success | deployed https://relaxed-weasel-invoiceninja.cloud.nexlayer.ai |
+| 2026-06-28T09:33:45Z | analyzed | initial repo analysis |
+| 2026-06-28T09:34:55Z | success | deployed https://relaxed-weasel-invoiceninja.cloud.nexlayer.ai |
 <!-- nexlayer:end -->
+
 

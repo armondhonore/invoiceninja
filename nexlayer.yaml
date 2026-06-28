@@ -7,7 +7,7 @@ application:
     # baked-in nginx on :80 -> local php-fpm:9000). If a real image ref is put
     # here, the runner deploys THAT stock image instead of the built wrapper —
     # which is php-fpm-only on :9000 (no :80 listener) -> edge 502.
-    image: "# filled by pipeline"
+    image: "registry.nexlayer.io/user_01kece1xyh817dwff7wnarhkxd/invoiceninja:19f0d936b12"
     path: /
     servicePorts:
     - 80
