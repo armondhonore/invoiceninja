@@ -2,10 +2,13 @@ application:
   name: invoiceninja
   pods:
   - name: app
-    # all-in-one v5 image (nginx + php-fpm + supervisor, listens on :80).
-    # The plain invoiceninja/invoiceninja image is fpm-only on :9000 (no web
-    # server) and its :latest is a stale v2/v3 build -> edge 502.
-    image: invoiceninja/invoiceninja-debian:latest
+    # Built from the repo-root Dockerfile (FROM invoiceninja/invoiceninja-debian
+    # + baked-in nginx serving :80, proxying *.php to local php-fpm:9000). The
+    # stock invoiceninja-debian image is php-fpm ONLY on :9000 with NO web
+    # server, so mapping :80 to it yields an edge 502. The wrapper image adds the
+    # HTTP listener the platform's single-port edge needs. The pipeline replaces
+    # this image ref with the freshly built image.
+    image: mirror.gcr.io/invoiceninja/invoiceninja-debian:latest
     path: /
     servicePorts:
     - 80
@@ -31,17 +34,12 @@ application:
       # initial admin account, else it exits 1.
       IN_USER_EMAIL: "admin@example.com"
       IN_PASSWORD: "nexlayer2024"
-    volumes:
-    # Persist Laravel storage so the framework cache/session/view dirs that
-    # init.sh creates (framework/{cache,sessions,views}, app/public) survive
-    # restarts — stops the entrypoint's cache:clear/optimize from flaking on a
-    # half-initialized storage tree across reboots. init.sh mkdir -p's these on
-    # an empty volume, so no baked-content shadowing matters here.
-    - name: invoiceninja-storage
-      mountPath: /var/www/html/storage
-      size: 5Gi
+    # NO storage PVC. A ReadWriteOnce PVC mounted by the old (crashlooping) pod
+    # blocks the new pod from attaching it -> the rollout never completes and the
+    # old broken image keeps serving (502/503). Storage is ephemeral (fine for
+    # test data); the entrypoint recreates the framework dirs on each boot.
   - name: mysql
-    image: mysql:8
+    image: mirror.gcr.io/library/mysql:8
     servicePorts:
     - 3306
     vars:
