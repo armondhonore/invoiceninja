@@ -27,6 +27,10 @@ application:
       SESSION_DRIVER: file
       QUEUE_CONNECTION: sync
       LOG_CHANNEL: stderr
+      # First-run init (init.sh) seeds the DB and REQUIRES these to create the
+      # initial admin account, else it exits 1.
+      IN_USER_EMAIL: "admin@example.com"
+      IN_PASSWORD: "nexlayer2024"
   - name: mysql
     image: mysql:8
     servicePorts:
