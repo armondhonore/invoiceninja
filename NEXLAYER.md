@@ -15,32 +15,31 @@
 
 ## Project Summary
 <!-- nexlayer:section agent-managed=project_summary -->
-Invoice Ninja is a comprehensive self-hosted invoicing application providing billing, expense tracking, and client management, built with a Laravel backend and a Vue/React frontend.
+Invoice Ninja is a professional invoicing platform that allows users to manage clients, create invoices, and track payments. It utilizes a Laravel backend and a Vue.js frontend to provide comprehensive billing and business management tools.
 <!-- nexlayer:end -->
 
 ## Technology Stack
 <!-- nexlayer:section agent-managed=tech_stack -->
 | Name | Kind | Version | Detected From |
 |------|------|---------|---------------|
-| PHP | language | 8.x | composer.json |
-| Laravel | framework | v5 | README.md, artisan |
-| Vue.js/React | framework | latest | package.json |
-| MySQL | database | latest | .env.example |
-| Redis | database | latest | .env.example |
-| Vite | build | 4.5.14 | package.json |
-| Composer | tool | latest | composer.json |
+| PHP | language | 8.x | composer.json, artisan |
+| Laravel | framework | unknown | artisan, composer.json |
+| Vue.js | framework | 2.7.16 | package.json |
+| Vite | build | 4.5.14 | package.json, vite.config.ts |
+| MySQL | database | unknown | .env.example |
+| Redis | database | unknown | .env.example |
 <!-- nexlayer:end -->
 
 ## Repository Structure
 <!-- nexlayer:section agent-managed=structure_map -->
 - app/ — Laravel core application logic
-- bootstrap/ — Framework bootstrapping files
+- bootstrap/ — Framework bootstrapper
 - config/ — Application configuration files
-- database/ — Migrations and seeders
-- public/ — Web root and static assets
-- resources/ — Frontend Vue/React components and assets
+- database/ — Migrations and seeds
+- public/ — Web server entry point and static assets
+- resources/ — Vue.js frontend source and Laravel blade templates
 - routes/ — API and Web route definitions
-- storage/ — Application logs and cached files
+- storage/ — File uploads and application logs
 <!-- nexlayer:end -->
 
 ## External Services Required
@@ -49,9 +48,8 @@ Services that must be configured separately (not deployed by Nexlayer):
 
 - Postmark API (POSTMARK_API_TOKEN)
 - Google Maps API (GOOGLE_MAPS_API_KEY)
-- GoCardless API (GOCARDLESS_CLIENT_ID)
+- GoCardless (GOCARDLESS_CLIENT_ID)
 - Microsoft OAuth (MICROSOFT_CLIENT_ID)
-- Apple OAuth (APPLE_CLIENT_ID)
 <!-- nexlayer:end -->
 
 ## Local Development Setup
@@ -91,25 +89,37 @@ APP_KEY=base64:RR++yx2rJ9kdxbdh3+AmbHLDQu+Q76i++co9Y8ybbno=
 
 | Pod | Variable | Value | Kind |
 |-----|----------|-------|------|
-| `app` | `APP_URL` | `"<% URL %>"` | plain |
-| `app` | `DB_CONNECTION` | `"mysql"` | plain |
-| `app` | `DB_HOST` | `"${mysql:3306}"` | inter-pod |
+| `app` | `APP_ENV` | `production` | plain |
+| `app` | `APP_KEY` | `"base64:WM83G829MpixFnAxuqx7QkdFPr/9/kkHB1QVNaYn1u0="` | plain |
+| `app` | `APP_URL` | `"https://relaxed-weasel-invoiceninja.cloud.nexlayer.ai"` | plain |
+| `app` | `DB_HOST` | `mysql.pod` | plain |
 | `app` | `DB_PORT` | `"3306"` | plain |
-| `app` | `DB_DATABASE` | `"ninja"` | plain |
-| `app` | `DB_USERNAME` | `"ninja"` | plain |
+| `app` | `DB_DATABASE` | `invoiceninja` | plain |
+| `app` | `DB_USERNAME` | `invoiceninja` | plain |
 | `app` | `DB_PASSWORD` | `"${MYSQL_PASSWORD}"` | inter-pod |
-| `app` | `APP_KEY` | `"${APP_KEY}"` | inter-pod |
-| `app` | `REDIS_HOST` | `"${redis:6379}"` | inter-pod |
-| `app` | `REDIS_PORT` | `"6379"` | plain |
-| `app` | `CACHE_DRIVER` | `"redis"` | plain |
-| `app` | `SESSION_DRIVER` | `"redis"` | plain |
-| `app` | `QUEUE_CONNECTION` | `"sync"` | plain |
-| `mysql` | `MYSQL_DATABASE` | `"ninja"` | plain |
-| `mysql` | `MYSQL_USER` | `"ninja"` | plain |
+| `app` | `REQUIRE_HTTPS` | `"true"` | plain |
+| `app` | `IS_DOCKER` | `"true"` | plain |
+| `app` | `TRUSTED_PROXIES` | `"*"` | plain |
+| `app` | `CACHE_DRIVER` | `file` | plain |
+| `app` | `SESSION_DRIVER` | `file` | plain |
+| `app` | `QUEUE_CONNECTION` | `sync` | plain |
+| `app` | `LOG_CHANNEL` | `stderr` | plain |
+| `app` | `IN_USER_EMAIL` | `"admin@example.com"` | plain |
+| `app` | `IN_PASSWORD` | _(set via Nexlayer dashboard)_ | secret |
+| `invoiceninja-storage` | `mountPath` | `/var/www/html/storage` | plain |
+| `invoiceninja-storage` | `size` | `5Gi` | plain |
+| `mysql` | `MYSQL_DATABASE` | `invoiceninja` | plain |
+| `mysql` | `MYSQL_USER` | `invoiceninja` | plain |
 | `mysql` | `MYSQL_PASSWORD` | `"${MYSQL_PASSWORD}"` | inter-pod |
 | `mysql` | `MYSQL_ROOT_PASSWORD` | `"${MYSQL_ROOT_PASSWORD}"` | inter-pod |
-| `mysql-data` | `size` | `10Gi` | plain |
-| `mysql-data` | `mountPath` | `/var/lib/mysql` | plain |
+| `invoiceninja-db` | `mountPath` | `/var/lib/mysql` | plain |
+| `invoiceninja-db` | `size` | `5Gi` | plain |
+
+### Secrets Required
+
+Set these in the Nexlayer dashboard before deploying:
+
+- `IN_PASSWORD` (`app` pod)
 
 ### nexlayer.yaml
 
@@ -117,45 +127,60 @@ APP_KEY=base64:RR++yx2rJ9kdxbdh3+AmbHLDQu+Q76i++co9Y8ybbno=
 application:
   name: invoiceninja
   pods:
-    - name: app
-      image: "registry.nexlayer.io/user_01kece1xyh817dwff7wnarhkxd/invoiceninja:9f0d2ca-fix5"
-      path: /
-      servicePorts:
-        - 80
-      vars:
-        APP_URL: "<% URL %>"
-        DB_CONNECTION: "mysql"
-        DB_HOST: "${mysql:3306}"
-        DB_PORT: "3306"
-        DB_DATABASE: "ninja"
-        DB_USERNAME: "ninja"
-        DB_PASSWORD: "${MYSQL_PASSWORD}"
-        APP_KEY: "${APP_KEY}"
-        REDIS_HOST: "${redis:6379}"
-        REDIS_PORT: "6379"
-        CACHE_DRIVER: "redis"
-        SESSION_DRIVER: "redis"
-        QUEUE_CONNECTION: "sync"
-    - name: mysql
-      image: mirror.gcr.io/library/mysql:8
-      path: /mysql
-      servicePorts:
-        - 3306
-      vars:
-        MYSQL_DATABASE: "ninja"
-        MYSQL_USER: "ninja"
-        MYSQL_PASSWORD: "${MYSQL_PASSWORD}"
-        MYSQL_ROOT_PASSWORD: "${MYSQL_ROOT_PASSWORD}"
-      volumes:
-        - name: mysql-data
-          size: 10Gi
-          mountPath: /var/lib/mysql
-    - name: redis
-      image: mirror.gcr.io/library/redis:7-alpine
-      path: /redis
-      servicePorts:
-        - 6379
-      vars: {}
+  - name: app
+    # Built from the repo-root Dockerfile (FROM invoiceninja/invoiceninja-debian
+    # + baked-in nginx serving :80, proxying *.php to local php-fpm:9000). The
+    # stock invoiceninja-debian image is php-fpm ONLY on :9000 with NO web
+    # server, so mapping :80 to it yields an edge 502. The wrapper image adds the
+    # HTTP listener the platform's single-port edge needs. The pipeline replaces
+    # this image ref with the freshly built image.
+    image: mirror.gcr.io/invoiceninja/invoiceninja-debian:latest
+    path: /
+    servicePorts:
+    - 80
+    vars:
+      APP_ENV: production
+      APP_KEY: "base64:WM83G829MpixFnAxuqx7QkdFPr/9/kkHB1QVNaYn1u0="
+      APP_URL: "https://relaxed-weasel-invoiceninja.cloud.nexlayer.ai"
+      DB_HOST: mysql.pod
+      DB_PORT: "3306"
+      DB_DATABASE: invoiceninja
+      DB_USERNAME: invoiceninja
+      DB_PASSWORD: "${MYSQL_PASSWORD}"
+      REQUIRE_HTTPS: "true"
+      IS_DOCKER: "true"
+      TRUSTED_PROXIES: "*"
+      # No Redis pod in this deployment — keep cache/session/queue off Redis so
+      # the entrypoint's cache-clear step does not fail trying to reach redis.
+      CACHE_DRIVER: file
+      SESSION_DRIVER: file
+      QUEUE_CONNECTION: sync
+      LOG_CHANNEL: stderr
+      # First-run init (init.sh) seeds the DB and REQUIRES these to create the
+      # initial admin account, else it exits 1.
+      IN_USER_EMAIL: "admin@example.com"
+      IN_PASSWORD: "nexlayer2024"
+    volumes:
+    # Persist Laravel storage. Safe to mount now: the wrapper entrypoint runs
+    # `chown -R www-data:www-data` on storage (as root, before dropping to
+    # www-data) on every boot, so an empty/root-owned PVC is made writable and
+    # the cache:clear step no longer dies. (cache:clear is also non-fatal now.)
+    - name: invoiceninja-storage
+      mountPath: /var/www/html/storage
+      size: 5Gi
+  - name: mysql
+    image: mirror.gcr.io/library/mysql:8
+    servicePorts:
+    - 3306
+    vars:
+      MYSQL_DATABASE: invoiceninja
+      MYSQL_USER: invoiceninja
+      MYSQL_PASSWORD: "${MYSQL_PASSWORD}"
+      MYSQL_ROOT_PASSWORD: "${MYSQL_ROOT_PASSWORD}"
+    volumes:
+    - name: invoiceninja-db
+      mountPath: /var/lib/mysql
+      size: 5Gi
 ```
 <!-- nexlayer:end -->
 
@@ -187,7 +212,7 @@ application:
 
 ## Nexlayer Configuration
 <!-- nexlayer:section agent-managed=nexlayer_config -->
-**Last deployed:** 2026-06-28T07:55:31Z  
+**Last deployed:** 2026-06-28T08:30:07Z  
 **Live URL:** https://relaxed-weasel-invoiceninja.cloud.nexlayer.ai  
 **Runtime:**  · **Port:** auto-detected  
 **Deploy branch:** nexlayer  
@@ -196,45 +221,60 @@ application:
 application:
   name: invoiceninja
   pods:
-    - name: app
-      image: "registry.nexlayer.io/user_01kece1xyh817dwff7wnarhkxd/invoiceninja:9f0d2ca-fix5"
-      path: /
-      servicePorts:
-        - 80
-      vars:
-        APP_URL: "<% URL %>"
-        DB_CONNECTION: "mysql"
-        DB_HOST: "${mysql:3306}"
-        DB_PORT: "3306"
-        DB_DATABASE: "ninja"
-        DB_USERNAME: "ninja"
-        DB_PASSWORD: "${MYSQL_PASSWORD}"
-        APP_KEY: "${APP_KEY}"
-        REDIS_HOST: "${redis:6379}"
-        REDIS_PORT: "6379"
-        CACHE_DRIVER: "redis"
-        SESSION_DRIVER: "redis"
-        QUEUE_CONNECTION: "sync"
-    - name: mysql
-      image: mirror.gcr.io/library/mysql:8
-      path: /mysql
-      servicePorts:
-        - 3306
-      vars:
-        MYSQL_DATABASE: "ninja"
-        MYSQL_USER: "ninja"
-        MYSQL_PASSWORD: "${MYSQL_PASSWORD}"
-        MYSQL_ROOT_PASSWORD: "${MYSQL_ROOT_PASSWORD}"
-      volumes:
-        - name: mysql-data
-          size: 10Gi
-          mountPath: /var/lib/mysql
-    - name: redis
-      image: mirror.gcr.io/library/redis:7-alpine
-      path: /redis
-      servicePorts:
-        - 6379
-      vars: {}
+  - name: app
+    # Built from the repo-root Dockerfile (FROM invoiceninja/invoiceninja-debian
+    # + baked-in nginx serving :80, proxying *.php to local php-fpm:9000). The
+    # stock invoiceninja-debian image is php-fpm ONLY on :9000 with NO web
+    # server, so mapping :80 to it yields an edge 502. The wrapper image adds the
+    # HTTP listener the platform's single-port edge needs. The pipeline replaces
+    # this image ref with the freshly built image.
+    image: mirror.gcr.io/invoiceninja/invoiceninja-debian:latest
+    path: /
+    servicePorts:
+    - 80
+    vars:
+      APP_ENV: production
+      APP_KEY: "base64:WM83G829MpixFnAxuqx7QkdFPr/9/kkHB1QVNaYn1u0="
+      APP_URL: "https://relaxed-weasel-invoiceninja.cloud.nexlayer.ai"
+      DB_HOST: mysql.pod
+      DB_PORT: "3306"
+      DB_DATABASE: invoiceninja
+      DB_USERNAME: invoiceninja
+      DB_PASSWORD: "${MYSQL_PASSWORD}"
+      REQUIRE_HTTPS: "true"
+      IS_DOCKER: "true"
+      TRUSTED_PROXIES: "*"
+      # No Redis pod in this deployment — keep cache/session/queue off Redis so
+      # the entrypoint's cache-clear step does not fail trying to reach redis.
+      CACHE_DRIVER: file
+      SESSION_DRIVER: file
+      QUEUE_CONNECTION: sync
+      LOG_CHANNEL: stderr
+      # First-run init (init.sh) seeds the DB and REQUIRES these to create the
+      # initial admin account, else it exits 1.
+      IN_USER_EMAIL: "admin@example.com"
+      IN_PASSWORD: "nexlayer2024"
+    volumes:
+    # Persist Laravel storage. Safe to mount now: the wrapper entrypoint runs
+    # `chown -R www-data:www-data` on storage (as root, before dropping to
+    # www-data) on every boot, so an empty/root-owned PVC is made writable and
+    # the cache:clear step no longer dies. (cache:clear is also non-fatal now.)
+    - name: invoiceninja-storage
+      mountPath: /var/www/html/storage
+      size: 5Gi
+  - name: mysql
+    image: mirror.gcr.io/library/mysql:8
+    servicePorts:
+    - 3306
+    vars:
+      MYSQL_DATABASE: invoiceninja
+      MYSQL_USER: invoiceninja
+      MYSQL_PASSWORD: "${MYSQL_PASSWORD}"
+      MYSQL_ROOT_PASSWORD: "${MYSQL_ROOT_PASSWORD}"
+    volumes:
+    - name: invoiceninja-db
+      mountPath: /var/lib/mysql
+      size: 5Gi
 ```
 <!-- nexlayer:end -->
 
@@ -242,7 +282,8 @@ application:
 <!-- nexlayer:section agent-managed=build_history -->
 | Date | Status | Notes |
 |------|--------|-------|
-| 2026-06-28T07:41:35Z | analyzed | initial repo analysis |
-| 2026-06-28T07:55:31Z | success | deployed https://relaxed-weasel-invoiceninja.cloud.nexlayer.ai |
+| 2026-06-28T08:22:31Z | analyzed | initial repo analysis |
+| 2026-06-28T08:30:07Z | success | deployed https://relaxed-weasel-invoiceninja.cloud.nexlayer.ai |
 <!-- nexlayer:end -->
+
 
