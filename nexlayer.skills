@@ -18,7 +18,7 @@ project:
   port: 80
   live_url: "https://relaxed-weasel-invoiceninja.cloud.nexlayer.ai"
   deploy_branch: nexlayer
-  repo: "https://github.com/armondhonore/invoiceninja"
+  repo: "https://github.com/armondhonore/invoiceninja.git"
   config_files:
     - nexlayer.yaml          # deployment topology (pods, ports, env vars)
     - Dockerfile             # container build recipe
