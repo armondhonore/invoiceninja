@@ -2,7 +2,10 @@ application:
   name: invoiceninja
   pods:
   - name: app
-    image: invoiceninja/invoiceninja:latest
+    # all-in-one v5 image (nginx + php-fpm + supervisor, listens on :80).
+    # The plain invoiceninja/invoiceninja image is fpm-only on :9000 (no web
+    # server) and its :latest is a stale v2/v3 build -> edge 502.
+    image: invoiceninja/invoiceninja-debian:latest
     path: /
     servicePorts:
     - 80
@@ -16,13 +19,8 @@ application:
       DB_USERNAME: invoiceninja
       DB_PASSWORD: "${MYSQL_PASSWORD}"
       REQUIRE_HTTPS: "true"
-    volumes:
-    - name: invoiceninja-storage
-      mountPath: /var/app/public/storage
-      size: 5Gi
-    - name: invoiceninja-logs
-      mountPath: /var/app/storage/logs
-      size: 2Gi
+      IS_DOCKER: "true"
+      TRUSTED_PROXIES: "*"
   - name: mysql
     image: mysql:8
     servicePorts:
