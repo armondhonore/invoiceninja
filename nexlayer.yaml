@@ -2,13 +2,12 @@ application:
   name: invoiceninja
   pods:
   - name: app
-    # Built from the repo-root Dockerfile (FROM invoiceninja/invoiceninja-debian
-    # + baked-in nginx serving :80, proxying *.php to local php-fpm:9000). The
-    # stock invoiceninja-debian image is php-fpm ONLY on :9000 with NO web
-    # server, so mapping :80 to it yields an edge 502. The wrapper image adds the
-    # HTTP listener the platform's single-port edge needs. The pipeline replaces
-    # this image ref with the freshly built image.
-    image: mirror.gcr.io/invoiceninja/invoiceninja-debian:latest
+    # IMPORTANT: this MUST be the literal pipeline placeholder so the runner
+    # patches in the freshly BUILT wrapper image (FROM invoiceninja-debian +
+    # baked-in nginx on :80 -> local php-fpm:9000). If a real image ref is put
+    # here, the runner deploys THAT stock image instead of the built wrapper —
+    # which is php-fpm-only on :9000 (no :80 listener) -> edge 502.
+    image: "# filled by pipeline"
     path: /
     servicePorts:
     - 80

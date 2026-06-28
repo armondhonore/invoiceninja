@@ -1,11 +1,10 @@
 # Nexlayer fix (pinned — authoritative, use verbatim)
 
-Root cause of the 502/503: stock `invoiceninja/invoiceninja-debian` is php-fpm
-ONLY (:9000, no web server) so the :80 edge returns 502; its `sh -eu` entrypoint
-also aborts boot on a failed `cache:clear`; and a ReadWriteOnce storage PVC held
-by the old crashlooping pod blocked the rollout. Fix: self-contained wrapper
-image that bakes nginx (serving :80 -> local php-fpm:9000) with a non-fatal
-entrypoint, and NO storage PVC (ephemeral). Do NOT regenerate the Dockerfile.
+Root cause of the 502: stock `invoiceninja/invoiceninja-debian` is php-fpm ONLY
+(:9000, no web server). The :80 edge returns 502. The app pod image MUST be the
+pipeline placeholder so the runner injects the freshly BUILT wrapper image
+(nginx on :80 -> local php-fpm:9000, non-fatal entrypoint). No storage PVC
+(ephemeral, avoids RWO rollout block). Do NOT regenerate the Dockerfile.
 
 ## Fixed Dockerfile
 
@@ -18,7 +17,6 @@ entrypoint, and NO storage PVC (ephemeral). Do NOT regenerate the Dockerfile.
 # we install our own entrypoint that NEVER aborts boot on a failed artisan
 # cache:clear/optimize (upstream's `sh -eu` entrypoint dies there -> backoff).
 FROM invoiceninja/invoiceninja-debian:latest
-
 USER root
 
 RUN apt-get update \
@@ -91,13 +89,12 @@ application:
   name: invoiceninja
   pods:
   - name: app
-    # Built from the repo-root Dockerfile (FROM invoiceninja/invoiceninja-debian
-    # + baked-in nginx serving :80, proxying *.php to local php-fpm:9000). The
-    # stock invoiceninja-debian image is php-fpm ONLY on :9000 with NO web
-    # server, so mapping :80 to it yields an edge 502. The wrapper image adds the
-    # HTTP listener the platform's single-port edge needs. The pipeline replaces
-    # this image ref with the freshly built image.
-    image: mirror.gcr.io/invoiceninja/invoiceninja-debian:latest
+    # IMPORTANT: this MUST be the literal pipeline placeholder so the runner
+    # patches in the freshly BUILT wrapper image (FROM invoiceninja-debian +
+    # baked-in nginx on :80 -> local php-fpm:9000). If a real image ref is put
+    # here, the runner deploys THAT stock image instead of the built wrapper —
+    # which is php-fpm-only on :9000 (no :80 listener) -> edge 502.
+    image: "# filled by pipeline"
     path: /
     servicePorts:
     - 80
