@@ -2,10 +2,13 @@ application:
   name: invoiceninja
   pods:
   - name: app
-    # all-in-one v5 image (nginx + php-fpm + supervisor, listens on :80).
-    # The plain invoiceninja/invoiceninja image is fpm-only on :9000 (no web
-    # server) and its :latest is a stale v2/v3 build -> edge 502.
-    image: mirror.gcr.io/invoiceninja/invoiceninja-debian:latest
+    # Built from the repo-root Dockerfile (FROM invoiceninja/invoiceninja-debian
+    # + baked-in nginx serving :80, proxying *.php to local php-fpm:9000). The
+    # stock invoiceninja-debian image is php-fpm ONLY on :9000 with NO web
+    # server, so mapping :80 to it yields an edge 502. The wrapper image adds the
+    # HTTP listener the platform's single-port edge needs. The pipeline replaces
+    # this image ref with the freshly built image.
+    image: invoiceninja/invoiceninja-debian:latest
     path: /
     servicePorts:
     - 80
@@ -31,12 +34,14 @@ application:
       # initial admin account, else it exits 1.
       IN_USER_EMAIL: "admin@example.com"
       IN_PASSWORD: "nexlayer2024"
-    # No storage PVC. The image bakes /var/www/html/storage owned by www-data
-    # (the non-root user php-fpm runs as). Mounting an empty PVC there is
-    # root-owned and unwritable by www-data, so the entrypoint's `cache:clear`
-    # exits non-zero -> CrashLoopBackOff -> edge 502. nexlayer.yaml has no
-    # fsGroup/securityContext to fix ownership, so we run storage off the
-    # container's own writable layer (ephemeral is fine for test data).
+    volumes:
+    # Persist Laravel storage. Safe to mount now: the wrapper entrypoint runs
+    # `chown -R www-data:www-data` on storage (as root, before dropping to
+    # www-data) on every boot, so an empty/root-owned PVC is made writable and
+    # the cache:clear step no longer dies. (cache:clear is also non-fatal now.)
+    - name: invoiceninja-storage
+      mountPath: /var/www/html/storage
+      size: 5Gi
   - name: mysql
     image: mirror.gcr.io/library/mysql:8
     servicePorts:
