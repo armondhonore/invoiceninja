@@ -8,7 +8,7 @@ application:
     # server, so mapping :80 to it yields an edge 502. The wrapper image adds the
     # HTTP listener the platform's single-port edge needs. The pipeline replaces
     # this image ref with the freshly built image.
-    image: invoiceninja/invoiceninja-debian:latest
+    image: mirror.gcr.io/invoiceninja/invoiceninja-debian:latest
     path: /
     servicePorts:
     - 80
