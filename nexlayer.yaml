@@ -31,15 +31,12 @@ application:
       # initial admin account, else it exits 1.
       IN_USER_EMAIL: "admin@example.com"
       IN_PASSWORD: "nexlayer2024"
-    volumes:
-    # Persist Laravel storage so the framework cache/session/view dirs that
-    # init.sh creates (framework/{cache,sessions,views}, app/public) survive
-    # restarts — stops the entrypoint's cache:clear/optimize from flaking on a
-    # half-initialized storage tree across reboots. init.sh mkdir -p's these on
-    # an empty volume, so no baked-content shadowing matters here.
-    - name: invoiceninja-storage
-      mountPath: /var/www/html/storage
-      size: 5Gi
+    # No storage PVC. The image bakes /var/www/html/storage owned by www-data
+    # (the non-root user php-fpm runs as). Mounting an empty PVC there is
+    # root-owned and unwritable by www-data, so the entrypoint's `cache:clear`
+    # exits non-zero -> CrashLoopBackOff -> edge 502. nexlayer.yaml has no
+    # fsGroup/securityContext to fix ownership, so we run storage off the
+    # container's own writable layer (ephemeral is fine for test data).
   - name: mysql
     image: mirror.gcr.io/library/mysql:8
     servicePorts:
