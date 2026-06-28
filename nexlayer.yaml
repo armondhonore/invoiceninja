@@ -5,7 +5,7 @@ application:
     # all-in-one v5 image (nginx + php-fpm + supervisor, listens on :80).
     # The plain invoiceninja/invoiceninja image is fpm-only on :9000 (no web
     # server) and its :latest is a stale v2/v3 build -> edge 502.
-    image: invoiceninja/invoiceninja-debian:latest
+    image: mirror.gcr.io/invoiceninja/invoiceninja-debian:latest
     path: /
     servicePorts:
     - 80
@@ -41,7 +41,7 @@ application:
       mountPath: /var/www/html/storage
       size: 5Gi
   - name: mysql
-    image: mysql:8
+    image: mirror.gcr.io/library/mysql:8
     servicePorts:
     - 3306
     vars:
